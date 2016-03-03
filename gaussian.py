@@ -13,8 +13,22 @@ from scipy.optimize import leastsq,curve_fit
 import matplotlib.pyplot as plt
 from os.path import isfile
 
-rootpath = '/home/schiavon/luxor/sagnac/'
-datapath = rootpath + 'data/focus/pump/f_500_1000/'
+# load configuration from yaml file
+import yaml
+
+with open('gaussian.yml') as ymlfile:
+    cfg = yaml.safe_load(ymlfile)
+    
+cfg = cfg[cfg['use_config']]
+datapath = cfg['datapath']
+l = cfg['wavelength']
+M_analysis = cfg['M_analysis']
+max_fit = cfg['fit_interval']['max']
+min_fit = cfg['fit_interval']['min']
+pos_text = (cfg['pos_text']['x'],cfg['pos_text']['y'])
+AOI = cfg['AOI']
+
+plt.close('all')
 
 pixelsize = 5.2e-6
 
@@ -39,7 +53,7 @@ if not isfile(datafile):
         
         # apply gaussian filter and normalize
         fig = imread(datapath+filecurr)
-        fig1 = fig[:,600:] # get subfigure [1:1024,600:1280] 
+        fig1 = fig[AOI[0]:AOI[1],AOI[2]:AOI[3]] # get subfigure [1:1024,600:1280] 
         fig2 = gaussian_filter(fig1,5)
         fig2 = fig2/np.max(fig2)
         
@@ -80,22 +94,48 @@ plt.close('all')
 plt.figure()
 plt.hold(True)
 l = 404.5e-9 # wavelength
-z = np.arange(L.min()-0.2,L.max()+.2,0.001)
+z = np.arange(L.min()-0.1,L.max()+.1,0.001)
 
-def W(z,zW,w0,M):
-    return w0*M*np.sqrt(1 + ((z-zW)*l/np.pi/w0**2)**2)
+if M_analysis:
+    def W(z,zW,w0,M):
+        return w0*M*np.sqrt(1 + ((z-zW)*l/np.pi/w0**2)**2)
+        
+    p0x = [L[np.argmin(wx)],np.min(wx),1]
+    p0y = [L[np.argmin(wy)],np.min(wy),1]
+else:
+    def W(z,zW,w0):
+        return w0*np.sqrt(1 + ((z-zW)*l/np.pi/w0**2)**2)
+        
+    p0x = [L[np.argmin(wx)],np.min(wx)]
+    p0y = [L[np.argmin(wy)],np.min(wy)]
     
-p0x = [L[np.argmin(wx)],np.min(wx),1]
-px,pcovx = curve_fit(W,L[:-2],wx[:-2],p0=p0x)
-plt.plot(L,wx,'+',z,W(z,*px))
 
 
-p0y = [L[np.argmin(wy)],np.min(wy),1]
-py,pcovy = curve_fit(W,L[:-2],wy[:-2],p0=p0y)
-plt.plot(L,wy,'+',z,W(z,*py))
+px,pcovx = curve_fit(W,L[min_fit:max_fit],wx[min_fit:max_fit],p0=p0x)
+perrx = np.sqrt(np.diag(pcovx))
+plt.plot(L,wx,'+r',z,W(z,*px),'r')
 
-plt.text(0.5,0.0002,'Wx = '+"{:.4f}".format(p0x[1]*1e6)+' um\nWy = '+"{:.4f}".format(p0y[1]*1e6)+' um')
+resx = W(L,*px)-wx
 
-print('Wx = '+"{:.4f}".format(p0x[1]*1e6)+' um\nWy = '+"{:.4f}".format(p0y[1]*1e6)+' um')
-print('Mx =',px[2])
-print('My =',py[2])
+
+py,pcovy = curve_fit(W,L[min_fit:max_fit],wy[min_fit:max_fit],p0=p0y)
+perry = np.sqrt(np.diag(pcovy))
+plt.plot(L,wy,'xb',z,W(z,*py),'b')
+
+resy = W(L,*py)-wy
+
+plt.text(pos_text[0],pos_text[1],'Wx = '+"{:.4f}".format(px[1]*1e6)+' um\nWy = '+"{:.4f}".format(py[1]*1e6)+' um')
+
+print('Wx = ( '+"{:.4f}".format(px[1]*1e6)+' +- '+"{:.4f}".format(perrx[1]*1e6)+' ) um')
+print('Wy = ( '+"{:.4f}".format(py[1]*1e6)+' +- '+"{:.4f}".format(perry[1]*1e6)+' ) um')
+print('zWx = ( '+"{:.4f}".format(px[0]*1e3)+' +- '+"{:.4f}".format(perrx[0]*1e3)+' ) mm')
+print('zWy = ( '+"{:.4f}".format(py[0]*1e3)+' +- '+"{:.4f}".format(perry[0]*1e3)+' ) mm')
+
+if M_analysis:
+    print('Mx =',px[2],'+-',perrx[2])
+    print('My =',py[2],'+-',perry[2])
+
+plt.figure()
+plt.plot(L,resx,'.r',L,resy,'.b')
+plt.xlim(L.min()-0.05,L.max()+0.05)
+
