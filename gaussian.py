@@ -19,14 +19,16 @@ import yaml
 with open('gaussian.yml') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
     
-cfg = cfg[cfg['use_config']]
-datapath = cfg['datapath']
-l = cfg['wavelength']
-M_analysis = cfg['M_analysis']
-max_fit = cfg['fit_interval']['max']
-min_fit = cfg['fit_interval']['min']
-pos_text = (cfg['pos_text']['x'],cfg['pos_text']['y'])
-AOI = cfg['AOI']
+cfgtype = cfg['use_config']
+cfgspec = cfg[cfg['use_config']]
+datapath = cfgspec['datapath']
+l = float(cfgspec['wavelength'])
+M_analysis = cfgspec['M_analysis']
+max_fit = cfgspec['fit_interval']['max']
+min_fit = cfgspec['fit_interval']['min']
+pos_text = (cfgspec['pos_text']['x'],cfgspec['pos_text']['y'])
+AOI = cfgspec['AOI']
+force = cfg['force']
 
 plt.close('all')
 
@@ -38,12 +40,12 @@ L = np.zeros(len(files))
 wx = np.zeros(len(files))
 wy = np.zeros(len(files))
 
-def gauss2d(x,y,x0,y0,wx,wy):
-    g = np.exp( - 2*(x-x0)**2/wx**2 - 2*(y-y0)**2/wy**2 )
+def gauss2d(x,y,x0,y0,wx,wy,A,b):
+    g = A*np.exp( - 2*(x-x0)**2/wx**2 - 2*(y-y0)**2/wy**2 ) + b
     return g
 
 datafile = datapath+'data.npz'
-if not isfile(datafile):
+if not isfile(datafile) or force:
     for i in range(len(files)):
         # get the filename
         filecurr = files[i].split('/')[-1]
@@ -61,7 +63,7 @@ if not isfile(datafile):
         (my,mx) = np.unravel_index(fig2.argmax(),fig2.shape)
         
         
-        p0 = [mx,my,5,5]
+        p0 = [mx,my,5,5,1,0]
         
         x = np.arange(fig2.shape[1])
         y = np.arange(fig2.shape[0])
@@ -77,7 +79,7 @@ if not isfile(datafile):
         
         # plot final figure with contours
         f,ax = plt.subplots(1,1)
-        ax.hold(True)
+        ax.hold(True)        
         ax.imshow(fig2,origin='bottom',extent=(x.min(),x.max(),y.min(),y.max()))
         ax.contour(x,y,data_fitted,8,colors='w')
     
@@ -93,23 +95,33 @@ plt.close('all')
 
 plt.figure()
 plt.hold(True)
-l = 404.5e-9 # wavelength
 z = np.arange(L.min()-0.1,L.max()+.1,0.001)
 
 if M_analysis:
     def W(z,zW,w0,M):
-        return w0*M*np.sqrt(1 + ((z-zW)*l/np.pi/w0**2)**2)
-        
-    p0x = [L[np.argmin(wx)],np.min(wx),1]
-    p0y = [L[np.argmin(wy)],np.min(wy),1]
+        return w0*np.sqrt(1 + (M**2*(z-zW)*l/(np.pi*w0**2))**2)
+
+    if not 'p0x' in cfg.keys():      
+        p0x = [L[np.argmin(wx)],np.min(wx),1]
+    else:
+        p0x = [cfgspec['p0x'][0],cfgspec['p0x'][1],2]
+    if not 'p0y' in cfg.keys():
+        p0y = [L[np.argmin(wy)],np.min(wy),1]
+    else:
+        p0y = [cfgspec['p0y'][0],cfgspec['p0y'][1],2]
 else:
     def W(z,zW,w0):
         return w0*np.sqrt(1 + ((z-zW)*l/np.pi/w0**2)**2)
         
-    p0x = [L[np.argmin(wx)],np.min(wx)]
-    p0y = [L[np.argmin(wy)],np.min(wy)]
+    if not 'p0x' in cfg.keys():      
+        p0x = [L[np.argmin(wx)],np.min(wx)]
+    else:
+        p0x = cfgspec['p0x']
+    if not 'p0y' in cfg.keys():
+        p0y = [L[np.argmin(wy)],np.min(wy)]
+    else:
+        p0y = cfgspec['p0y']
     
-
 
 px,pcovx = curve_fit(W,L[min_fit:max_fit],wx[min_fit:max_fit],p0=p0x)
 perrx = np.sqrt(np.diag(pcovx))
@@ -126,6 +138,7 @@ resy = W(L,*py)-wy
 
 plt.text(pos_text[0],pos_text[1],'Wx = '+"{:.4f}".format(px[1]*1e6)+' um\nWy = '+"{:.4f}".format(py[1]*1e6)+' um')
 
+print('Analysis of',cfgtype)
 print('Wx = ( '+"{:.4f}".format(px[1]*1e6)+' +- '+"{:.4f}".format(perrx[1]*1e6)+' ) um')
 print('Wy = ( '+"{:.4f}".format(py[1]*1e6)+' +- '+"{:.4f}".format(perry[1]*1e6)+' ) um')
 print('zWx = ( '+"{:.4f}".format(px[0]*1e3)+' +- '+"{:.4f}".format(perrx[0]*1e3)+' ) mm')
