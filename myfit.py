@@ -6,7 +6,6 @@ Created on Fri Mar  4 14:34:33 2016
 """
 
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
 
@@ -16,8 +15,9 @@ def gauss2d(x,y,x0,y0,wx,wy,A,b):
     return g
 
 def fit2dgauss(fig1):
-    # apply gaussian filter and normalize
-    fig2 = gaussian_filter(fig1,5)
+    # do not apply gaussian filter
+#    fig2 = gaussian_filter(fig1,5)
+    fig2=fig1
     fig2 = fig2/np.max(fig2)
     
     # find coordinates of the max
