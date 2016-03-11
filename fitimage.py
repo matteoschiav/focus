@@ -21,5 +21,5 @@ p = fit2dgauss(fig)
 Wx = p[2]*pixelsize
 Wy = p[3]*pixelsize
 
-print('Wx =',"{:.4f}".format(Wx*1e6))
-print('Wx =',"{:.4f}".format(Wy*1e6))
+print('Wx =',"{:.4f}".format(Wx*1e6),'um')
+print('Wy =',"{:.4f}".format(Wy*1e6),'um')

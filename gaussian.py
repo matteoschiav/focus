@@ -67,7 +67,7 @@ else:
     wy = tmp['wy']
 
 #%% fit waists
-plt.close('all')
+# plt.close('all')
 
 plt.figure()
 plt.hold(True)
