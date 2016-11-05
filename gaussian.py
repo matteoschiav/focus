@@ -11,6 +11,7 @@ from scipy.misc import imread
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from os.path import isfile
+import matplotlib
 
 from myfit import fit2dgauss
 
@@ -35,7 +36,7 @@ plt.close('all')
 
 pixelsize = 5.2e-6
 
-files = np.sort(glob(datapath+'*.bmp'))
+files = np.sort(glob(datapath+'/*.bmp'))
 L = np.zeros(len(files))
 
 wx = np.zeros(len(files))
@@ -69,6 +70,12 @@ else:
 #%% fit waists
 # plt.close('all')
 
+#fm.FontManager(size=40)
+matplotlib.rcParams.update({'font.size':22})
+
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
 plt.figure()
 plt.hold(True)
 z = np.arange(L.min()-0.1,L.max()+.1,0.001)
@@ -101,30 +108,44 @@ else:
 
 px,pcovx = curve_fit(W,L[min_fit:max_fit],wx[min_fit:max_fit],p0=p0x)
 perrx = np.sqrt(np.diag(pcovx))
-plt.plot(L,wx,'+r',z,W(z,*px),'r')
+plt.plot(L,wx*1e3,'or',markersize=8)
+plt.plot(z,W(z,*px)*1e3,'r',linewidth=2)
 
 resx = W(L,*px)-wx
 
 
 py,pcovy = curve_fit(W,L[min_fit:max_fit],wy[min_fit:max_fit],p0=p0y)
 perry = np.sqrt(np.diag(pcovy))
-plt.plot(L,wy,'xb',z,W(z,*py),'b')
+plt.plot(L,wy*1e3,'db',markersize=8)
+plt.plot(z,W(z,*py)*1e3,'b',linewidth=2)
+plt.xlim(np.amin(z),np.amax(z))
+
+plt.xlabel(r'$z$ $[m]$')
+plt.ylabel(r'$W(z)$ $[mm]$')
 
 resy = W(L,*py)-wy
 
-plt.text(pos_text[0],pos_text[1],'Wx = '+"{:.4f}".format(px[1]*1e6)+' um\nWy = '+"{:.4f}".format(py[1]*1e6)+' um')
+plt.text(pos_text[0],pos_text[1],r'\centering $W_x = ('+"{:.0f}".format(px[1]*1e6)+'\pm'+ \
+    '{:.0f}'.format(perrx[1]*1e6)+')\,\mu m$\n$W_y = ('+"{:.0f}".format(py[1]*1e6)+ \
+    '\pm'+'{:.0f}'.format(perry[1]*1e6)+')\,\mu m$\n$M_x^2 = '+\
+    '{:.1f}'.format(px[2])+'\pm'+'{:.1f}'.format(perrx[2])+'$\n$M_y^2 = '+\
+    '{:.1f}'.format(py[2])+'\pm'+'{:.1f}'.format(perry[2])+'$')
 
 print('Analysis of',cfgtype)
 print('Wx = ( '+"{:.4f}".format(px[1]*1e6)+' +- '+"{:.4f}".format(perrx[1]*1e6)+' ) um')
 print('Wy = ( '+"{:.4f}".format(py[1]*1e6)+' +- '+"{:.4f}".format(perry[1]*1e6)+' ) um')
 print('zWx = ( '+"{:.4f}".format(px[0]*1e3)+' +- '+"{:.4f}".format(perrx[0]*1e3)+' ) mm')
 print('zWy = ( '+"{:.4f}".format(py[0]*1e3)+' +- '+"{:.4f}".format(perry[0]*1e3)+' ) mm')
+print('theta_x = '+"{:.4f}".format(l/np.pi/px[1]*1e3)+' mrad')
+print('theta_y = '+"{:.4f}".format(l/np.pi/py[1]*1e3)+' mrad')
+
 
 if M_analysis:
     print('Mx =',px[2],'+-',perrx[2])
     print('My =',py[2],'+-',perry[2])
 
-plt.figure()
-plt.plot(L,resx,'.r',L,resy,'.b')
-plt.xlim(L.min()-0.05,L.max()+0.05)
+#plt.figure()
+#plt.plot(L,resx,'.r',L,resy,'.b')
+#plt.xlim(L.min()-0.05,L.max()+0.05)
 
+plt.tight_layout()
