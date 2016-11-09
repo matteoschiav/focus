@@ -78,7 +78,7 @@ plt.rc('font', family='serif')
 
 plt.figure()
 plt.hold(True)
-z = np.arange(L.min()-0.1,L.max()+.1,0.001)
+z = np.arange(L[min_fit:max_fit].min()-0.02,L[min_fit:max_fit].max()+.02,0.001)
 
 if M_analysis:
     def W(z,zW,w0,M):
@@ -108,7 +108,7 @@ else:
 
 px,pcovx = curve_fit(W,L[min_fit:max_fit],wx[min_fit:max_fit],p0=p0x)
 perrx = np.sqrt(np.diag(pcovx))
-plt.plot(L,wx*1e3,'or',markersize=8)
+plt.plot(L[min_fit:max_fit],wx[min_fit:max_fit]*1e3,'or',markersize=8)
 plt.plot(z,W(z,*px)*1e3,'r',linewidth=2)
 
 resx = W(L,*px)-wx
@@ -116,7 +116,7 @@ resx = W(L,*px)-wx
 
 py,pcovy = curve_fit(W,L[min_fit:max_fit],wy[min_fit:max_fit],p0=p0y)
 perry = np.sqrt(np.diag(pcovy))
-plt.plot(L,wy*1e3,'db',markersize=8)
+plt.plot(L[min_fit:max_fit],wy[min_fit:max_fit]*1e3,'db',markersize=8)
 plt.plot(z,W(z,*py)*1e3,'b',linewidth=2)
 plt.xlim(np.amin(z),np.amax(z))
 
@@ -128,8 +128,8 @@ resy = W(L,*py)-wy
 plt.text(pos_text[0],pos_text[1],r'\centering $W_x = ('+"{:.0f}".format(px[1]*1e6)+'\pm'+ \
     '{:.0f}'.format(perrx[1]*1e6)+')\,\mu m$\n$W_y = ('+"{:.0f}".format(py[1]*1e6)+ \
     '\pm'+'{:.0f}'.format(perry[1]*1e6)+')\,\mu m$\n$M_x^2 = '+\
-    '{:.1f}'.format(px[2])+'\pm'+'{:.1f}'.format(perrx[2])+'$\n$M_y^2 = '+\
-    '{:.1f}'.format(py[2])+'\pm'+'{:.1f}'.format(perry[2])+'$')
+    '{:.2f}'.format(px[2])+'\pm'+'{:.2f}'.format(perrx[2])+'$\n$M_y^2 = '+\
+    '{:.2f}'.format(py[2])+'\pm'+'{:.2f}'.format(perry[2])+'$')
 
 print('Analysis of',cfgtype)
 print('Wx = ( '+"{:.4f}".format(px[1]*1e6)+' +- '+"{:.4f}".format(perrx[1]*1e6)+' ) um')

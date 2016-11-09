@@ -6,6 +6,7 @@ Created on Fri Mar  4 14:34:33 2016
 """
 
 import numpy as np
+#from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
 
